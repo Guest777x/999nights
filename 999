@@ -1,0 +1,209 @@
+-- GuestLoader.lua — GUEST AUTO TRADER LOADER
+local gethui_ = gethui or function() return game:GetService("CoreGui") end
+local TS = game:GetService("TweenService")
+local HttpService = game:GetService("HttpService")
+local HTTP = (syn and syn.request) or http_request or request
+
+-- ==========================================
+-- SET YOUR SCRIPT URL HERE
+-- ==========================================
+local SCRIPT_URL = "https://raw.githubusercontent.com/Kixdev/99NITF/main/script"
+-- ==========================================
+
+-- Clean up old instances
+local guiName = "GuestLoaderUI"
+local old = gethui_():FindFirstChild(guiName) or game:GetService("Players").LocalPlayer.PlayerGui:FindFirstChild(guiName)
+if old then old:Destroy() end
+
+local THEME = {
+    BG=Color3.fromRGB(10,12,20), SURF=Color3.fromRGB(18,21,32), SURF2=Color3.fromRGB(26,30,44),
+    TEXT=Color3.fromRGB(226,232,240), DIM=Color3.fromRGB(148,163,184),
+    ACCENT=Color3.fromRGB(99,102,241), ACCENT2=Color3.fromRGB(79,70,229), STROKE=Color3.fromRGB(71,85,105),
+    GREEN_STROKE=Color3.fromRGB(74,222,128), DANGER=Color3.fromRGB(239,68,68)
+}
+
+local function corner(p,r) local c=Instance.new("UICorner",p); c.CornerRadius=UDim.new(0,r or 8); return c end
+local function stroke(p,c,t,tr) local s=Instance.new("UIStroke",p); s.Color=c or THEME.STROKE; s.Thickness=t or 1; s.Transparency=tr or 0.4; return s end
+local function tween(o,d,pr) TS:Create(o,TweenInfo.new(d or 0.14,Enum.EasingStyle.Quint,Enum.EasingDirection.Out),pr):Play() end
+local function shadow(parent) local i=Instance.new("ImageLabel",parent); i.AnchorPoint=Vector2.new(0.5,0.5); i.Position=UDim2.new(0.5,0,0.5,2); i.Size=UDim2.new(1,26,1,26); i.BackgroundTransparency=1; i.Image="rbxassetid://6014261993"; i.ImageColor3=Color3.new(0,0,0); i.ImageTransparency=0.72; i.ScaleType=Enum.ScaleType.Slice; i.SliceCenter=Rect.new(49,49,450,450); i.ZIndex=0; return i end
+
+local gui = Instance.new("ScreenGui")
+gui.Name = guiName
+gui.ResetOnSpawn = false
+gui.IgnoreGuiInset = true
+gui.DisplayOrder = 2147483647 -- Max ZIndex to sit on top
+gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+gui.Parent = gethui_()
+
+-- Fade background
+local bg = Instance.new("Frame", gui)
+bg.Size = UDim2.fromScale(1,1)
+bg.BackgroundColor3 = Color3.new(0,0,0)
+bg.BackgroundTransparency = 0.5
+bg.BorderSizePixel = 0
+
+-- Main Panel
+local root = Instance.new("Frame", gui)
+root.Size = UDim2.fromOffset(340, 180)
+root.Position = UDim2.new(0.5, -170, 0.5, -90)
+root.BackgroundColor3 = THEME.BG
+root.BorderSizePixel = 0
+corner(root, 16); stroke(root, THEME.STROKE, 1.4, 0.38); shadow(root)
+
+local grad = Instance.new("UIGradient",root)
+grad.Color=ColorSequence.new({ColorSequenceKeypoint.new(0,Color3.fromRGB(24,27,42)),ColorSequenceKeypoint.new(1,Color3.fromRGB(12,14,22))})
+grad.Rotation=90
+
+local header = Instance.new("Frame", root)
+header.Size = UDim2.new(1, 0, 0, 52)
+header.BackgroundTransparency = 1
+header.ZIndex = 2
+
+local accentBar = Instance.new("Frame", header)
+accentBar.Size = UDim2.fromOffset(8, 8)
+accentBar.Position = UDim2.fromOffset(16, 22)
+accentBar.BackgroundColor3 = THEME.ACCENT
+accentBar.BorderSizePixel = 0
+corner(accentBar, 4)
+accentBar.ZIndex = 2
+
+local title = Instance.new("TextLabel", header)
+title.Size = UDim2.new(1, -40, 0, 26)
+title.Position = UDim2.fromOffset(32, 14)
+title.BackgroundTransparency = 1
+title.Font = Enum.Font.GothamBlack
+title.Text = "GUEST AUTO TRADER"
+title.TextSize = 17
+title.TextColor3 = THEME.TEXT
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.ZIndex = 2
+
+local subLine = Instance.new("Frame", header)
+subLine.Position = UDim2.fromOffset(32, 42)
+subLine.Size = UDim2.fromOffset(150, 2)
+subLine.BackgroundColor3 = THEME.ACCENT
+subLine.BorderSizePixel = 0
+corner(subLine, 1)
+subLine.ZIndex = 2
+
+local ver = Instance.new("TextLabel", header)
+ver.Size = UDim2.fromOffset(100, 14)
+ver.Position = UDim2.new(1, -110, 0, 18)
+ver.BackgroundTransparency = 1
+ver.Font = Enum.Font.GothamBold
+ver.Text = "LOADER v1.0"
+ver.TextSize = 10
+ver.TextColor3 = THEME.GREEN_STROKE
+ver.TextXAlignment = Enum.TextXAlignment.Right
+ver.ZIndex = 2
+
+-- Status Text
+local statusLabel = Instance.new("TextLabel", root)
+statusLabel.Size = UDim2.new(1, -48, 0, 20)
+statusLabel.Position = UDim2.fromOffset(24, 80)
+statusLabel.BackgroundTransparency = 1
+statusLabel.Font = Enum.Font.GothamMedium
+statusLabel.Text = "Initializing..."
+statusLabel.TextSize = 12
+statusLabel.TextColor3 = THEME.DIM
+statusLabel.TextXAlignment = Enum.TextXAlignment.Center
+statusLabel.ZIndex = 2
+
+-- Progress Bar
+local barBg = Instance.new("Frame", root)
+barBg.Size = UDim2.new(1, -48, 0, 8)
+barBg.Position = UDim2.fromOffset(24, 110)
+barBg.BackgroundColor3 = THEME.SURF
+barBg.BorderSizePixel = 0
+corner(barBg, 4)
+stroke(barBg, THEME.STROKE, 1, 0.5)
+barBg.ZIndex = 2
+
+local barFill = Instance.new("Frame", barBg)
+barFill.Size = UDim2.new(0, 0, 1, 0)
+barFill.BackgroundColor3 = THEME.ACCENT
+barFill.BorderSizePixel = 0
+corner(barFill, 4)
+barFill.ZIndex = 3
+
+-- Log text at the bottom
+local logText = Instance.new("TextLabel", root)
+logText.Size = UDim2.new(1, -48, 0, 14)
+logText.Position = UDim2.fromOffset(24, 140)
+logText.BackgroundTransparency = 1
+logText.Font = Enum.Font.Code
+logText.Text = "Connecting to GitHub..."
+logText.TextSize = 10
+logText.TextColor3 = THEME.DIM
+logText.TextXAlignment = Enum.TextXAlignment.Center
+logText.ZIndex = 2
+
+-- Animation Helper
+local function setProgress(percent, text, logStr)
+    tween(barFill, 0.3, {Size = UDim2.new(percent / 100, 0, 1, 0)})
+    if text then statusLabel.Text = text end
+    if logStr then logText.Text = logStr end
+end
+
+-- Load Logic
+task.spawn(function()
+    task.wait(0.5)
+    
+    -- 1. Downloading
+    setProgress(20, "Downloading payload...", "Fetching URL: raw.githubusercontent.com")
+    local success, response = pcall(function()
+        if type(HTTP) == "function" then
+            return HTTP({Url = SCRIPT_URL, Method = "GET"}).Body
+        else
+            return game:HttpGet(SCRIPT_URL)
+        end
+    end)
+    
+    if not success or not response then
+        setProgress(100, "Failed to connect", "Error: Network request failed")
+        barFill.BackgroundColor3 = THEME.DANGER
+        task.wait(3)
+        gui:Destroy()
+        return
+    end
+    
+    -- 2. Compiling
+    setProgress(50, "Downloaded!", "Payload size: " .. #response .. " bytes")
+    task.wait(0.5)
+    setProgress(70, "Compiling Lua...", "loadstring()")
+    
+    local compileSuccess, compiled = pcall(function()
+        return loadstring(response)
+    end)
+    
+    if not compileSuccess or not compiled then
+        setProgress(100, "Compilation Error", tostring(compiled))
+        barFill.BackgroundColor3 = THEME.DANGER
+        task.wait(3)
+        gui:Destroy()
+        return
+    end
+    
+    -- 3. Executing
+    setProgress(90, "Executing...", "Running payload")
+    task.wait(0.5)
+    
+    local execSuccess, execErr = pcall(compiled)
+    if not execSuccess then
+        logText.Text = "Execution Error: " .. tostring(execErr)
+        logText.TextColor3 = THEME.DANGER
+        statusLabel.Text = "Script Error"
+        barFill.BackgroundColor3 = THEME.DANGER
+    else
+        setProgress(100, "Success!", "Done.")
+        barFill.BackgroundColor3 = THEME.GREEN_STROKE
+        statusLabel.Text = "Injected successfully"
+        task.wait(1)
+    end
+    
+    -- 4. Fade out
+    tween(bg, 0.5, {BackgroundTransparency = 1})
+    tween(root, 0.5, {BackgroundTransparency = 1})
+    task.wait(0.5)
+    gui:Destroy()
+end)
