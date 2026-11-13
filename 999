@@ -1,4 +1,4 @@
--- Guest 99 Nights Loader (Cosmetic & Instant Close)
+-- Guest 99 Nights Script Loader
 local gethui_ = gethui or function() return game:GetService("CoreGui") end
 local TS = game:GetService("TweenService")
 local Players = game:GetService("Players")
@@ -59,7 +59,7 @@ title.Size = UDim2.new(1, -40, 0, 26)
 title.Position = UDim2.fromOffset(32, 12)
 title.BackgroundTransparency = 1
 title.Font = Enum.Font.GothamBlack
-title.Text = "GUEST 99 NIGHTS"
+title.Text = "GUEST 99 NIGHTS SCRIPT"
 title.TextSize = 16
 title.TextColor3 = THEME.TEXT
 title.TextXAlignment = Enum.TextXAlignment.Left
@@ -77,7 +77,7 @@ statusLabel.Size = UDim2.new(1, -48, 0, 16)
 statusLabel.Position = UDim2.fromOffset(24, 70)
 statusLabel.BackgroundTransparency = 1
 statusLabel.Font = Enum.Font.GothamMedium
-statusLabel.Text = "Loading modules..."
+statusLabel.Text = "Connecting..."
 statusLabel.TextSize = 12
 statusLabel.TextColor3 = THEME.DIM
 statusLabel.TextXAlignment = Enum.TextXAlignment.Left
@@ -98,28 +98,34 @@ corner(barFill, 3)
 
 local URL = "https://raw.githubusercontent.com/Kixdev/99NITF/main/script"
 
+-- FAKE LOADING SEQUENCE (5 SECONDS)
 task.spawn(function()
-    -- Fake loading sequence for show
-    task.wait(0.3)
-    tween(barFill, 0.4, {Size = UDim2.new(0.4, 0, 1, 0)})
-    statusLabel.Text = "Connecting to repository..."
-    task.wait(0.4)
+    -- 1. Progress to 30%
+    task.wait(0.5)
+    statusLabel.Text = "Bypassing anti-cheat..."
+    tween(barFill, 0.8, {Size = UDim2.new(0.3, 0, 1, 0)})
     
-    tween(barFill, 0.4, {Size = UDim2.new(0.8, 0, 1, 0)})
-    statusLabel.Text = "Verifying payload..."
-    task.wait(0.4)
+    -- 2. Progress to 70%
+    task.wait(1.2)
+    statusLabel.Text = "Loading modules..."
+    tween(barFill, 1.2, {Size = UDim2.new(0.7, 0, 1, 0)})
     
-    tween(barFill, 0.2, {Size = UDim2.new(1, 0, 1, 0)})
-    statusLabel.Text = "Injected successfully"
+    -- 3. Progress to 100%
+    task.wait(1.5)
+    statusLabel.Text = "Injecting payload..."
+    tween(barFill, 1.2, {Size = UDim2.new(1, 0, 1, 0)})
+    
+    -- 4. Finish
+    task.wait(1.2)
+    statusLabel.Text = "Success! Injected."
     statusLabel.TextColor3 = THEME.GREEN
     barFill.BackgroundColor3 = THEME.GREEN
-    
     task.wait(0.4)
     
-    -- Destroy UI completely
+    -- Destroy UI completely after 5 seconds
     gui:Destroy()
     
-    -- NOW execute the script in the background
+    -- Run the script in the background immediately after UI closes
     local ok, code = pcall(function() return game:HttpGet(URL) end)
     if ok and code then
         local compiled, func = pcall(loadstring, code)
