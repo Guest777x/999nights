@@ -1,8 +1,9 @@
--- Guest 99 Nights Loader (Fixed)
+-- Guest 99 Nights Loader (Cosmetic & Instant Close)
 local gethui_ = gethui or function() return game:GetService("CoreGui") end
 local TS = game:GetService("TweenService")
 local Players = game:GetService("Players")
 
+-- Clean up old instances
 local guiName = "Guest99Loader"
 local old = gethui_():FindFirstChild(guiName) or Players.LocalPlayer.PlayerGui:FindFirstChild(guiName)
 if old then old:Destroy() end
@@ -10,7 +11,7 @@ if old then old:Destroy() end
 local THEME = {
     BG=Color3.fromRGB(10,12,20), SURF=Color3.fromRGB(18,21,32), TEXT=Color3.fromRGB(226,232,240), 
     DIM=Color3.fromRGB(148,163,184), ACCENT=Color3.fromRGB(99,102,241), STROKE=Color3.fromRGB(71,85,105),
-    GREEN=Color3.fromRGB(74,222,128), RED=Color3.fromRGB(239,68,68)
+    GREEN=Color3.fromRGB(74,222,128)
 }
 
 local function corner(p,r) local c=Instance.new("UICorner",p); c.CornerRadius=UDim.new(0,r or 8); return c end
@@ -26,12 +27,14 @@ gui.DisplayOrder = 2147483647
 gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 gui.Parent = gethui_()
 
+-- Dim background
 local bg = Instance.new("Frame", gui)
 bg.Size = UDim2.fromScale(1,1)
 bg.BackgroundColor3 = Color3.new(0,0,0)
 bg.BackgroundTransparency = 0.5
 bg.BorderSizePixel = 0
 
+-- Main Panel
 local root = Instance.new("Frame", gui)
 root.Size = UDim2.fromOffset(340, 160)
 root.Position = UDim2.new(0.5, -170, 0.5, -80)
@@ -43,6 +46,7 @@ local grad = Instance.new("UIGradient",root)
 grad.Color = ColorSequence.new({ColorSequenceKeypoint.new(0,Color3.fromRGB(24,27,42)),ColorSequenceKeypoint.new(1,Color3.fromRGB(12,14,22))})
 grad.Rotation = 90
 
+-- Header
 local accentBar = Instance.new("Frame", root)
 accentBar.Size = UDim2.fromOffset(8, 8)
 accentBar.Position = UDim2.fromOffset(16, 20)
@@ -67,16 +71,18 @@ subLine.BackgroundColor3 = THEME.ACCENT
 subLine.BorderSizePixel = 0
 corner(subLine, 1)
 
+-- Status
 local statusLabel = Instance.new("TextLabel", root)
 statusLabel.Size = UDim2.new(1, -48, 0, 16)
 statusLabel.Position = UDim2.fromOffset(24, 70)
 statusLabel.BackgroundTransparency = 1
 statusLabel.Font = Enum.Font.GothamMedium
-statusLabel.Text = "Fetching payload..."
+statusLabel.Text = "Loading modules..."
 statusLabel.TextSize = 12
 statusLabel.TextColor3 = THEME.DIM
 statusLabel.TextXAlignment = Enum.TextXAlignment.Left
 
+-- Progress Bar
 local barBg = Instance.new("Frame", root)
 barBg.Size = UDim2.new(1, -48, 0, 6)
 barBg.Position = UDim2.fromOffset(24, 100)
@@ -93,43 +99,32 @@ corner(barFill, 3)
 local URL = "https://raw.githubusercontent.com/Kixdev/99NITF/main/script"
 
 task.spawn(function()
+    -- Fake loading sequence for show
+    task.wait(0.3)
+    tween(barFill, 0.4, {Size = UDim2.new(0.4, 0, 1, 0)})
+    statusLabel.Text = "Connecting to repository..."
     task.wait(0.4)
-    tween(barFill, 0.3, {Size = UDim2.new(0.5, 0, 1, 0)})
     
-    local ok, code = pcall(function()
-        return game:HttpGet(URL)
-    end)
+    tween(barFill, 0.4, {Size = UDim2.new(0.8, 0, 1, 0)})
+    statusLabel.Text = "Verifying payload..."
+    task.wait(0.4)
     
-    if not ok or not code then
-        statusLabel.Text = "Download failed"
-        statusLabel.TextColor3 = THEME.RED
-        barFill.BackgroundColor3 = THEME.RED
-        tween(barFill, 0.3, {Size = UDim2.new(1, 0, 1, 0)})
-        task.wait(2)
-        gui:Destroy()
-        return
-    end
-    
-    statusLabel.Text = "Injecting..."
+    tween(barFill, 0.2, {Size = UDim2.new(1, 0, 1, 0)})
+    statusLabel.Text = "Injected successfully"
     statusLabel.TextColor3 = THEME.GREEN
     barFill.BackgroundColor3 = THEME.GREEN
-    tween(barFill, 0.3, {Size = UDim2.new(1, 0, 1, 0)})
-    task.wait(0.3)
     
-    local compiled, func = pcall(loadstring, code)
-    if compiled and func then
-        -- CRITICAL FIX: Run the target script in a SEPARATE thread so its infinite loops don't freeze the loader
-        task.spawn(func)
-        
-        -- Give it 0.5 seconds to verify no immediate crash before destroying UI
-        task.wait(0.5)
-        statusLabel.Text = "Injected successfully"
-    else
-        statusLabel.Text = "Execution Error"
-        statusLabel.TextColor3 = THEME.RED
-        task.wait(2)
-    end
+    task.wait(0.4)
     
-    -- Destroy loader
+    -- Destroy UI completely
     gui:Destroy()
+    
+    -- NOW execute the script in the background
+    local ok, code = pcall(function() return game:HttpGet(URL) end)
+    if ok and code then
+        local compiled, func = pcall(loadstring, code)
+        if compiled and func then
+            task.spawn(func)
+        end
+    end
 end)
